@@ -1,0 +1,59 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "2UmMbNHc8FBr98mJFN1k8ISOIHk=",
+			"path": "github.com/garyburd/redigo/internal",
+			"revision": "57f1cd7de6175c96b423e7ac2534ff2b39e2ef79",
+			"revisionTime": "2017-06-15T18:53:09Z"
+		},
+		{
+			"checksumSHA1": "dGCqjUjHaREgF/BM+u0UdebD4fk=",
+			"path": "github.com/garyburd/redigo/redis",
+			"revision": "57f1cd7de6175c96b423e7ac2534ff2b39e2ef79",
+			"revisionTime": "2017-06-15T18:53:09Z"
+		},
+		{
+			"checksumSHA1": "goKdJPx9vwINN//4B5aqqF2K+TE=",
+			"path": "github.com/go-sql-driver/mysql",
+			"revision": "6ea7374bc1b0cd6cc6398e2aec912f6764aa5adc",
+			"revisionTime": "2019-10-22T11:23:24Z"
+		},
+		{
+			"checksumSHA1": "icJ87n14tI6NI3VzZNV5/xt22gE=",
+			"path": "github.com/jinzhu/gorm",
+			"revision": "4bd563826b2d0f81dfac18fd9c922c8cc5ad099d",
+			"revisionTime": "2019-10-28T07:12:32Z"
+		},
+		{
+			"checksumSHA1": "Hf2EdZUOQfrn+iW34gg2/0GHo94=",
+			"path": "github.com/jinzhu/inflection",
+			"revision": "f5c5f50e6090ae76a29240b61ae2a90dd810112e",
+			"revisionTime": "2019-06-03T04:28:36Z"
+		},
+		{
+			"checksumSHA1": "ddHQ3AbnzgLL4tpi6FEEWArLCIk=",
+			"path": "github.com/vmihailenco/msgpack",
+			"revision": "d91c9f43689d8565046de42f51a19bb80ebb8360",
+			"revisionTime": "2017-06-22T07:12:44Z"
+		},
+		{
+			"checksumSHA1": "tOMrkwvdZiNeJDeT/Cjuo7fCpg0=",
+			"path": "github.com/vmihailenco/msgpack/codes",
+			"revision": "d91c9f43689d8565046de42f51a19bb80ebb8360",
+			"revisionTime": "2017-06-22T07:12:44Z"
+		},
+		{
+			"path": "google.golang.org/appengine/datastore",
+			"revision": ""
+		},
+		{
+			"checksumSHA1": "WNjUTH01NMhPWjpwnsaL3SW52Gw=",
+			"path": "gopkg.in/ini.v1",
+			"revision": "d3de07a94d22b4a0972deb4b96d790c2c0ce8333",
+			"revisionTime": "2017-06-02T20:46:24Z"
+		}
+	],
+	"rootPath": "delay-job"
+}
