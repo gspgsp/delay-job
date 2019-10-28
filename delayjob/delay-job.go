@@ -1,6 +1,8 @@
 package delayjob
 
 import (
+	"delay-job/model"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -14,6 +16,8 @@ var (
 	timers []*time.Ticker
 	// bucket名称chan
 	bucketNameChan <-chan string
+	//默认任务切片
+	defaultTopicSlice = []string{"close_vip_order"}
 )
 
 // Init 初始化延时队列
@@ -211,9 +215,7 @@ func waitConsumerTicker(timer *time.Ticker) {
 }
 
 func tickConsumerHandler() {
-	topics := make([]string, 5)
-	topics[0] = "order"
-	jobId, err := blockPopFromReadyQueue(topics, config.Setting.QueueBlockTimeout)
+	jobId, err := blockPopFromReadyQueue(defaultTopicSlice, config.Setting.QueueBlockTimeout)
 	if err != nil {
 		//fmt.Printf("the ready queue error is:%v", err.Error())
 		return
@@ -230,5 +232,20 @@ func tickConsumerHandler() {
 		return
 	}
 
-	fmt.Printf("the jobid is:%v\n", job.Body)
+	//关闭会员订单操作
+	if job.Topic == "close_vip_order" {
+
+		var closeJobOrder model.CloseVipOrder
+		var extra model.Extra
+		extra.ExpiredReason = "订单预期未支付，系统自动取消"
+		json.Unmarshal([]byte(job.Body), &closeJobOrder)
+
+		sql := fmt.Sprintf("update h_vip_orders set status = -1 and extra = %s where id = %d", extra, closeJobOrder.OrderId)
+		if err := baseDb.Exec(sql).Error; err != nil {
+			fmt.Printf("更新vip订单出错:%v\n", err.Error())
+			return
+		}
+
+		fmt.Printf("更新vip订单成功\n")
+	}
 }

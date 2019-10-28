@@ -45,7 +45,7 @@ const (
     //DefaultDbHost 默认数据库主机
     DefaultDbHost = "127.0.0.1"
     //DefaultDbPort 默认数据库端口
-    DefaultDbPort = 3306
+    DefaultDbPort = "3306"
     //DefaultDbDatabase 默认数据库
     DefaultDbDatabase = ""
     //DefaultDbUserName 默认数据库用户
@@ -83,7 +83,7 @@ type RedisConfig struct {
 type MySqlConfig struct {
 	DbConnect  string
 	DbHost     string
-	DbPort     int
+	DbPort     string
 	DbDatabase string
 	DbUserName string
 	DbPassword string
@@ -126,7 +126,7 @@ func (config *Config) parse(path string) {
 
 	config.Mysql.DbConnect = section.Key("mysql.connect").MustString(DefaultDbConnect)
 	config.Mysql.DbHost = section.Key("mysql.host").MustString(DefaultDbHost)
-	config.Mysql.DbPort = section.Key("mysql.port").MustInt(DefaultDbPort)
+	config.Mysql.DbPort = section.Key("mysql.port").MustString(DefaultDbPort)
 	config.Mysql.DbDatabase = section.Key("mysql.database").MustString(DefaultDbDatabase)
 	config.Mysql.DbUserName = section.Key("mysql.user_name").MustString(DefaultDbUserName)
 	config.Mysql.DbPassword = section.Key("mysql.password").MustString(DefaultDbPassword)

@@ -36,6 +36,10 @@ func (cmd *Cmd) Run() {
 	}
 	// 初始化配置
 	config.Init(configFile)
+
+	//初始化mysql数据库配置
+	new(delayjob.BaseOrm).InitDB()
+
 	// 初始化队列
 	delayjob.Init()
 
