@@ -58,6 +58,8 @@ const (
     DefaultLogPath = "D:/gopath/src/delay-job/logs"
     //DefaultLogName 默认日志名称
     DefaultLogName = "request"
+    //DefaultTimeFormat 默认时间格式化
+    DefaultTimeFormat = "2006-01-02 15:04:05"
 )
 
 // Config 应用配置

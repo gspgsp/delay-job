@@ -2,6 +2,7 @@ package delayjob
 
 import (
 	"delay-job/model"
+	"delay-job/utils"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -53,54 +54,6 @@ func Push(job Job) error {
 	}
 
 	return nil
-}
-
-// Pop 轮询获取Job
-func Pop(topics []string) (*Job, error) {
-	jobId, err := blockPopFromReadyQueue(topics, config.Setting.QueueBlockTimeout)
-	if err != nil {
-		return nil, err
-	}
-
-	// 队列为空
-	if jobId == "" {
-		return nil, nil
-	}
-
-	// 获取job元信息
-	job, err := getJob(jobId)
-	if err != nil {
-		return job, err
-	}
-
-	// 消息不存在, 可能已被删除
-	if job == nil {
-		return nil, nil
-	}
-
-	//timestamp := time.Now().Unix() + job.TTR
-	//err = pushToBucket(<-bucketNameChan, timestamp, job.Id)
-
-	return job, err
-}
-
-// Remove 删除Job
-func Remove(jobId string) error {
-	return removeJob(jobId)
-}
-
-// Get 查询Job
-func Get(jobId string) (*Job, error) {
-	job, err := getJob(jobId)
-	if err != nil {
-		return job, err
-	}
-
-	// 消息不存在, 可能已被删除
-	if job == nil {
-		return nil, nil
-	}
-	return job, err
 }
 
 // 轮询获取bucket名称, 使job分布到不同bucket中, 提高扫描速度
@@ -214,23 +167,30 @@ func waitConsumerTicker(timer *time.Ticker) {
 	}
 }
 
+//实时扫描ready-queue-topic队列，取出所有已经到期的job
 func tickConsumerHandler() {
+	//通过Blop+Ticker的话，其实有个问题，如果同一时刻有多个到期都需要处理呢，是不是必须要等到下一秒，
+	//那么在这等待的一秒钟里面，订单其实已过期了,万一用户还做了操作呢。万一订单超级多，有可能要等到好几分钟以后才能处理完，而在这几分钟以内订单其实是已过期的
+	//通过添加很多个ticker好像不行，默认这里有3个，相当于同一秒可以处理3个job。
+	//优化的对象....
 	jobId, err := blockPopFromReadyQueue(defaultTopicSlice, config.Setting.QueueBlockTimeout)
 	if err != nil {
-		//fmt.Printf("the ready queue error is:%v", err.Error())
+		log.Printf("the ready queue error is:%v", err.Error())
 		return
 	}
 
 	if len(jobId) == 0 {
-		//fmt.Printf("未查找到相关job\n")
+		log.Printf("未查找到相关job\n")
 		return
 	}
 
 	job, err := getJob(jobId)
 	if err != nil {
-		//fmt.Printf("获取job信息出错:%v\n", err.Error())
+		log.Printf("获取job信息出错:%v\n", err.Error())
 		return
 	}
+
+	updatedAt, _ := utils.FormatLocalTime(time.Now())
 
 	//关闭会员订单操作
 	if job.Topic == "close_vip_order" {
@@ -241,15 +201,15 @@ func tickConsumerHandler() {
 			return
 		}
 
-		sql := fmt.Sprintf("update h_vip_orders set status = -1, extra = %s where id = %d", extra, closeJobOrder.OrderId)
+		sql := fmt.Sprintf("update h_vip_orders set status = -1, extra = %s, updated_at = %s where id = %d", extra, "'"+updatedAt+"'", closeJobOrder.OrderId)
 		if err := baseDb.Exec(sql).Error; err != nil {
-			fmt.Printf("更新vip订单出错:%v\n", err.Error())
+			log.Printf("更新vip订单出错:%v\n", err.Error())
 			return
 		}
 
-		fmt.Printf("更新vip订单成功\n")
+		log.Printf("更新vip订单成功\n")
 		return
 	}
 
-	//其他操作
+	//其他类型jod操作
 }
