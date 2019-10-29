@@ -54,6 +54,10 @@ const (
     DefaultDbPassword = "root"
     //DefaultDbPrefix 默认数据库前缀
     DefaultDbPrefix = ""
+    //DefaultLogPath 默认日志路径
+    DefaultLogPath = "D:/gopath/src/delay-job/logs"
+    //DefaultLogName 默认日志名称
+    DefaultLogName = "request"
 )
 
 // Config 应用配置

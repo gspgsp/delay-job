@@ -1,15 +1,15 @@
 package cmd
 
 import (
-	"flag"
-	"fmt"
-	"log"
-	"net/http"
-	"os"
-
 	"delay-job/config"
 	"delay-job/delayjob"
+	"delay-job/logs"
 	"delay-job/routers"
+	"flag"
+	"fmt"
+	log "github.com/sirupsen/logrus"
+	"net/http"
+	"os"
 )
 
 // Cmd 应用入口Command
@@ -22,7 +22,7 @@ var (
 
 const (
 	// AppVersion 应用版本号
-	AppVersion = "0.4"
+	AppVersion = "0.1"
 )
 
 // Run 运行应用
@@ -34,6 +34,10 @@ func (cmd *Cmd) Run() {
 		fmt.Println(AppVersion)
 		os.Exit(0)
 	}
+
+	//初始化日志配置
+	logs.InitFilesystemLogger()
+
 	// 初始化配置
 	config.Init(configFile)
 

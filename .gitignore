@@ -23,3 +23,7 @@ config/config.go
 vendor/github.com
 vendor/golang.org
 vendor/gopkg.in
+
+#logs
+logs/request
+logs/request.*

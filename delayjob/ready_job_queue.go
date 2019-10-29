@@ -1,9 +1,8 @@
 package delayjob
 
 import (
-	"fmt"
-
 	"delay-job/config"
+	"fmt"
 )
 
 // 添加JobId到队列中
