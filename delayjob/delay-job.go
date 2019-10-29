@@ -234,18 +234,22 @@ func tickConsumerHandler() {
 
 	//关闭会员订单操作
 	if job.Topic == "close_vip_order" {
-
 		var closeJobOrder model.CloseVipOrder
-		var extra model.Extra
-		extra.ExpiredReason = "订单预期未支付，系统自动取消"
-		json.Unmarshal([]byte(job.Body), &closeJobOrder)
+		extra := `'{"expired_reason":"订单预期未支付，系统自动取消"}'`
+		if err := json.Unmarshal([]byte(job.Body), &closeJobOrder); err != nil {
+			fmt.Printf("解析任务信息出错:%v\n", err.Error())
+			return
+		}
 
-		sql := fmt.Sprintf("update h_vip_orders set status = -1 and extra = %s where id = %d", extra, closeJobOrder.OrderId)
+		sql := fmt.Sprintf("update h_vip_orders set status = -1, extra = %s where id = %d", extra, closeJobOrder.OrderId)
 		if err := baseDb.Exec(sql).Error; err != nil {
 			fmt.Printf("更新vip订单出错:%v\n", err.Error())
 			return
 		}
 
 		fmt.Printf("更新vip订单成功\n")
+		return
 	}
+
+	//其他操作
 }
