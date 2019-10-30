@@ -77,12 +77,14 @@ func readBody(resp http.ResponseWriter, req *http.Request, v interface{}) error 
 		resp.Write(generateFailureBody("读取request body失败"))
 		return err
 	}
-	err = json.Unmarshal(body, v)
-	if err != nil {
-		log.Printf("解析json失败#%s", err.Error())
-		resp.Write(generateFailureBody("解析json失败"))
-		return err
-	}
+
+	log.Info("the req is:", body)
+	//err = json.Unmarshal(body, v)
+	//if err != nil {
+	//	log.Printf("解析json失败#%s", err.Error())
+	//	resp.Write(generateFailureBody("解析json失败"))
+	//	return err
+	//}
 
 	return nil
 }
