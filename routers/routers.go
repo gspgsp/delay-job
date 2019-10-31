@@ -11,49 +11,41 @@ import (
 	"delay-job/delayjob"
 )
 
-// TopicRequest Job类型请求json
-type TopicRequest struct {
-	Topic string `json:"topic"`
-}
-
-// IdRequest JobId请求json
-type IdRequest struct {
-	Id string `json:"id"`
-}
-
 // Push 添加job
 func Push(resp http.ResponseWriter, req *http.Request) {
-	var job delayjob.Job
-	err := readBody(resp, req, &job)
+	var closeOrder delayjob.CloseOrder
+	err := readBody(resp, req, &closeOrder)
 	if err != nil {
 		return
 	}
 
-	job.Id = strings.TrimSpace(job.Id)
-	job.Topic = strings.TrimSpace(job.Topic)
-	job.Body = strings.TrimSpace(job.Body)
-	if job.Id == "" {
+	//new
+	closeOrder.ID = strings.TrimSpace(closeOrder.ID)
+	closeOrder.Topic = strings.TrimSpace(closeOrder.Topic)
+	if closeOrder.ID == "" {
 		resp.Write(generateFailureBody("job id不能为空"))
 		return
 	}
-	if job.Topic == "" {
-		resp.Write(generateFailureBody("topic 不能为空"))
+	if closeOrder.Topic == "" {
+		resp.Write(generateFailureBody("job topic 不能为空"))
 		return
 	}
 
-	if job.Delay <= 0 || job.Delay > (1<<31) {
+	if closeOrder.Delay <= 0 || closeOrder.Delay > (1<<31) {
 		resp.Write(generateFailureBody("delay 取值范围1 - (2^31 - 1)"))
 		return
 	}
+	closeOrder.Delay = time.Now().Unix() + closeOrder.Delay
 
-	if job.TTR <= 0 || job.TTR > 86400 {
+	if closeOrder.TTR <= 0 || closeOrder.TTR > 86400 {
 		resp.Write(generateFailureBody("ttr 取值范围1 - 86400"))
 		return
 	}
 
-	log.Printf("add job#%+v\n", job)
-	job.Delay = time.Now().Unix() + job.Delay
-	err = delayjob.Push(job)
+	//记录当前添加的job信息
+	log.Printf("add job:%+v\n", closeOrder)
+
+	err = delayjob.Push(closeOrder)
 
 	if err != nil {
 		log.Printf("添加job失败#%s", err.Error())
@@ -78,13 +70,12 @@ func readBody(resp http.ResponseWriter, req *http.Request, v interface{}) error 
 		return err
 	}
 
-	log.Info("the req is:", body)
-	//err = json.Unmarshal(body, v)
-	//if err != nil {
-	//	log.Printf("解析json失败#%s", err.Error())
-	//	resp.Write(generateFailureBody("解析json失败"))
-	//	return err
-	//}
+	err = json.Unmarshal(body, v)
+	if err != nil {
+		log.Printf("解析json失败#%s", err.Error())
+		resp.Write(generateFailureBody("解析json失败"))
+		return err
+	}
 
 	return nil
 }

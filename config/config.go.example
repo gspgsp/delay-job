@@ -19,9 +19,9 @@ const (
     // DefaultBucketSize bucket数量
     DefaultBucketSize = 3
     // DefaultBucketName bucket名称
-    DefaultBucketName = "dq_bucket_%d"
+    DefaultBucketName = "job_bucket_%d"
     // DefaultQueueName 队列名称
-    DefaultQueueName = "dq_queue_%s"
+    DefaultQueueName = "job_%s"
     // DefaultQueueBlockTimeout 轮询队列超时时间
     DefaultQueueBlockTimeout = 168
     // DefaultRedisHost Redis连接地址

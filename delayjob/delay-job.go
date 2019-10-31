@@ -1,9 +1,7 @@
 package delayjob
 
 import (
-	"delay-job/model"
 	"delay-job/utils"
-	"encoding/json"
 	"errors"
 	"fmt"
 	log "github.com/sirupsen/logrus"
@@ -37,17 +35,17 @@ func Init() {
 }
 
 // Push 添加一个Job到队列中
-func Push(job Job) error {
-	if job.Id == "" || job.Topic == "" || job.Delay < 0 || job.TTR <= 0 {
+func Push(job CloseOrder) error {
+	if job.ID == "" || job.Topic == "" || job.Delay < 0 || job.TTR <= 0 {
 		return errors.New("invalid job")
 	}
 
-	err := putJob(job.Id, job)
+	err := putJob(job.ID, job)
 	if err != nil {
 		log.Printf("添加job到job pool失败#job-%+v#%s", job, err.Error())
 		return err
 	}
-	err = pushToBucket(<-bucketNameChan, job.Delay, job.Id)
+	err = pushToBucket(<-bucketNameChan, job.Delay, job.ID)
 	if err != nil {
 		log.Printf("添加job到bucket失败#job-%+v#%s", job, err.Error())
 		return err
@@ -174,6 +172,7 @@ func tickConsumerHandler() {
 	//通过添加很多个ticker好像不行，默认这里有3个，相当于同一秒可以处理3个job。
 	//优化的对象....
 	jobId, err := blockPopFromReadyQueue(defaultTopicSlice, config.Setting.QueueBlockTimeout)
+	log.Printf("the jobId is:%v\n", jobId)
 	if err != nil {
 		log.Printf("the ready queue error is:%v", err.Error())
 		return
@@ -194,16 +193,12 @@ func tickConsumerHandler() {
 
 	//关闭会员订单操作
 	if job.Topic == "close_vip_order" {
-		var closeJobOrder model.CloseVipOrder
 		extra := `'{"expired_reason":"订单预期未支付，系统自动取消"}'`
-		if err := json.Unmarshal([]byte(job.Body), &closeJobOrder); err != nil {
-			fmt.Printf("解析任务信息出错:%v\n", err.Error())
-			return
-		}
 
-		sql := fmt.Sprintf("update h_vip_orders set status = -1, extra = %s, updated_at = %s where id = %d", extra, "'"+updatedAt+"'", closeJobOrder.OrderId)
+		sql := fmt.Sprintf("update h_vip_orders set status = -1, extra = %s, updated_at = %s where id = %s", extra, "'"+updatedAt+"'", job.Body.OrderId)
 		if err := baseDb.Exec(sql).Error; err != nil {
 			log.Printf("更新vip订单出错:%v\n", err.Error())
+			//其实这里还应该判断，当更新出错以后，从新放回readtQueue，直到超时就是ttl时间，如果在ttl时间内，还没有操作成功，那么就不要继续放回去了。
 			return
 		}
 

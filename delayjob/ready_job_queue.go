@@ -22,6 +22,7 @@ func blockPopFromReadyQueue(queues []string, timeout int) (string, error) {
 	}
 	args = append(args, timeout)
 	value, err := execRedisCommand("BLPOP", args...)
+
 	if err != nil {
 		return "", err
 	}
@@ -30,6 +31,7 @@ func blockPopFromReadyQueue(queues []string, timeout int) (string, error) {
 	}
 	var valueBytes []interface{}
 	valueBytes = value.([]interface{})
+
 	if len(valueBytes) == 0 {
 		return "", nil
 	}
