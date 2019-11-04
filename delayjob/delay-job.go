@@ -35,20 +35,24 @@ func Init() {
 }
 
 // Push 添加一个Job到队列中
-func Push(job CloseOrder) error {
-	if job.ID == "" || job.Topic == "" || job.Delay < 0 || job.TTR <= 0 {
-		return errors.New("invalid job")
-	}
+func Push(value interface{}) error {
+	//push到队列job队列的任务可能有多个类型
+	switch job := value.(type) {
+	case CloseOrder:
+		if job.ID == "" || job.Topic == "" || job.Delay < 0 || job.TTR <= 0 || job.Body.OrderId == "" {
+			return errors.New("invalid job")
+		}
 
-	err := putJob(job.ID, job)
-	if err != nil {
-		log.Printf("添加job到job pool失败#job-%+v#%s", job, err.Error())
-		return err
-	}
-	err = pushToBucket(<-bucketNameChan, job.Delay, job.ID)
-	if err != nil {
-		log.Printf("添加job到bucket失败#job-%+v#%s", job, err.Error())
-		return err
+		err := putJob(job.ID, job)
+		if err != nil {
+			log.Printf("添加job到job pool失败#job-%+v#%s", job, err.Error())
+			return err
+		}
+		err = pushToBucket(<-bucketNameChan, job.Delay, job.ID)
+		if err != nil {
+			log.Printf("添加job到bucket失败#job-%+v#%s", job, err.Error())
+			return err
+		}
 	}
 
 	return nil

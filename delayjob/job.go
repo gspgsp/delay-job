@@ -5,22 +5,13 @@ import (
 	"github.com/vmihailenco/msgpack"
 )
 
-// Job 使用msgpack序列化后保存到Redis,减少内存占用
-//type Job struct {
-//	Topic string `json:"topic" msgpack:"1"`
-//	Id    string `json:"id" msgpack:"2"`    // job唯一标识ID
-//	Delay int64  `json:"delay" msgpack:"3"` // 延迟时间, unix时间戳
-//	TTR   int64  `json:"ttr" msgpack:"4"`
-//	Body  string `json:"body" msgpack:"5"`
-//}
-
 /**
 Job体
 */
 type Jobs struct {
 	Topic string `json:"topic"`
-	ID    string `json:"id"`
-	Delay int64  `json:"delay"`
+	ID    string `json:"id"`    //job唯一标识ID
+	Delay int64  `json:"delay"` //延迟时间, unix时间戳
 	TTR   int64  `json:"ttr"`
 }
 
