@@ -11,8 +11,8 @@ import (
 	"delay-job/delayjob"
 )
 
-// Push 添加job
-func Push(resp http.ResponseWriter, req *http.Request) {
+// 关闭订单Handler
+func CloseVipOrder(resp http.ResponseWriter, req *http.Request) {
 	var closeOrder delayjob.CloseOrder
 	err := readBody(resp, req, &closeOrder)
 	if err != nil {
@@ -77,6 +77,7 @@ func readBody(resp http.ResponseWriter, req *http.Request, v interface{}) error 
 		return err
 	}
 
+	log.Printf("the body is:%v\n", string(body))
 	return nil
 }
 
