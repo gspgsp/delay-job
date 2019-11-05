@@ -31,7 +31,7 @@ type CloseOrderBody struct {
 }
 
 // 获取Job
-func getJob(key string) (*CloseOrder, error) {
+func getJob(key, topic string) (interface{}, error) {
 	value, err := execRedisCommand("GET", key)
 	if err != nil {
 		return nil, err
@@ -41,18 +41,24 @@ func getJob(key string) (*CloseOrder, error) {
 	}
 
 	byteValue := value.([]byte)
-	job := &CloseOrder{}
-	err = msgpack.Unmarshal(byteValue, job)
-	if err != nil {
-		return nil, err
-	}
 
-	return job, nil
+	switch topic {
+	case "close_vip_order":
+		job := CloseOrder{}
+		err = msgpack.Unmarshal(byteValue, &job)
+		if err != nil {
+			return nil, err
+		}
+
+		return job, nil
+	default:
+		return nil, nil
+	}
 }
 
 // 添加Job
-func putJob(key string, job CloseOrder) error {
-	value, err := msgpack.Marshal(job)
+func putJob(key string, v interface{}) error {
+	value, err := msgpack.Marshal(v)
 	if err != nil {
 		return err
 	}

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"strings"
 	"time"
 
 	"delay-job/config"
@@ -48,7 +49,7 @@ func Push(value interface{}) error {
 			log.Printf("添加job到job pool失败#job-%+v#%s", job, err.Error())
 			return err
 		}
-		err = pushToBucket(<-bucketNameChan, job.Delay, job.ID)
+		err = pushToBucket(<-bucketNameChan, job.Delay, job.ID+"|"+job.Topic)
 		if err != nil {
 			log.Printf("添加job到bucket失败#job-%+v#%s", job, err.Error())
 			return err
@@ -116,7 +117,10 @@ func tickHandler(t time.Time, bucketName string) {
 		}
 
 		// 延迟时间小于等于当前时间, 取出Job元信息并放入ready queue
-		job, err := getJob(bucketItem.jobId)
+		// 拆分得到jobId和topic
+		jobIDTopic := strings.Split(bucketItem.jobId, "|")
+
+		job, err := getJob(jobIDTopic[0], jobIDTopic[1])
 		if err != nil {
 			log.Printf("获取Job元信息失败#bucket-%s#%s", bucketName, err.Error())
 			continue
@@ -128,20 +132,25 @@ func tickHandler(t time.Time, bucketName string) {
 			continue
 		}
 
-		// 再次确认元信息中delay是否小于等于当前时间
-		if job.Delay > t.Unix() {
-			// 从bucket中删除旧的jobId
-			removeFromBucket(bucketName, bucketItem.jobId)
-			// 重新计算delay时间并放入bucket中
-			pushToBucket(<-bucketNameChan, job.Delay, bucketItem.jobId)
-			continue
-		}
+		//
+		switch value := job.(type) {
+		//这里以后可以直接case多个类型
+		case CloseOrder:
+			// 再次确认元信息中delay是否小于等于当前时间
+			if value.Delay > t.Unix() {
+				// 从bucket中删除旧的jobId
+				removeFromBucket(bucketName, bucketItem.jobId)
+				// 重新计算delay时间并放入bucket中
+				pushToBucket(<-bucketNameChan, value.Delay, bucketItem.jobId)
+				continue
+			}
 
-		err = pushToReadyQueue(job.Topic, bucketItem.jobId)
-		if err != nil {
-			log.Printf("JobId放入ready queue失败#bucket-%s#job-%+v#%s",
-				bucketName, job, err.Error())
-			continue
+			err = pushToReadyQueue(value.Topic, bucketItem.jobId)
+			if err != nil {
+				log.Printf("JobId放入ready queue失败#bucket-%s#job-%+v#%s",
+					bucketName, job, err.Error())
+				continue
+			}
 		}
 
 		// 从bucket中删除
@@ -187,7 +196,10 @@ func tickConsumerHandler() {
 		return
 	}
 
-	job, err := getJob(jobId)
+	// 拆分得到jobId和topic
+	jobIDTopic := strings.Split(jobId, "|")
+
+	job, err := getJob(jobIDTopic[0], jobIDTopic[1])
 	if err != nil {
 		log.Printf("获取job信息出错:%v\n", err.Error())
 		return
@@ -195,19 +207,22 @@ func tickConsumerHandler() {
 
 	updatedAt, _ := utils.FormatLocalTime(time.Now())
 
-	//关闭会员订单操作
-	if job.Topic == "close_vip_order" {
-		extra := `'{"expired_reason":"订单预期未支付，系统自动取消"}'`
+	switch value := job.(type) {
+	case CloseOrder:
+		//关闭会员订单操作
+		if value.Topic == "close_vip_order" {
+			extra := `'{"expired_reason":"订单预期未支付，系统自动取消"}'`
 
-		sql := fmt.Sprintf("update h_vip_orders set status = -1, extra = %s, updated_at = %s where id = %s", extra, "'"+updatedAt+"'", job.Body.OrderId)
-		if err := baseDb.Exec(sql).Error; err != nil {
-			log.Printf("更新vip订单出错:%v\n", err.Error())
-			//其实这里还应该判断，当更新出错以后，从新放回readtQueue，直到超时就是ttl时间，如果在ttl时间内，还没有操作成功，那么就不要继续放回去了。
+			sql := fmt.Sprintf("update h_vip_orders set status = -1, extra = %s, updated_at = %s where id = %s", extra, "'"+updatedAt+"'", value.Body.OrderId)
+			if err := baseDb.Exec(sql).Error; err != nil {
+				log.Printf("更新vip订单出错:%v\n", err.Error())
+				//其实这里还应该判断，当更新出错以后，从新放回readtQueue，直到超时就是ttl时间，如果在ttl时间内，还没有操作成功，那么就不要继续放回去了。
+				return
+			}
+
+			log.Printf("更新vip订单成功\n")
 			return
 		}
-
-		log.Printf("更新vip订单成功\n")
-		return
 	}
 
 	//其他类型jod操作
