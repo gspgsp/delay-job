@@ -1,6 +1,7 @@
 package delayjob
 
 import (
+	"delay-job/model"
 	"delay-job/utils"
 	"errors"
 	"fmt"
@@ -211,6 +212,19 @@ func tickConsumerHandler() {
 	case CloseOrder:
 		//关闭会员订单操作
 		if value.Topic == "close_vip_order" {
+
+			//应该先判断当前订单的状态，只有0的时候才会取消订单，否则不操作
+			var vipOrder model.VipOrderModel
+			if err := baseDb.Table("h_vip_orders").Where("id = ?", value.Body.OrderId).First(&vipOrder).Error; err != nil {
+				log.Info("未找到当前用户订单信息")
+				return
+			}
+
+			if vipOrder.Status != 0 || vipOrder.PaymentStatus != 0 {
+				log.Info("订单不存在")
+				return
+			}
+
 			extra := `'{"expired_reason":"订单预期未支付，系统自动取消"}'`
 
 			sql := fmt.Sprintf("update h_vip_orders set status = -1, extra = %s, updated_at = %s where id = %s", extra, "'"+updatedAt+"'", value.Body.OrderId)
