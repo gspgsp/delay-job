@@ -12,7 +12,7 @@ import (
 )
 
 // 关闭订单Handler
-func CloseVipOrder(resp http.ResponseWriter, req *http.Request) {
+func CloseOrder(resp http.ResponseWriter, req *http.Request) {
 	var closeOrder delayjob.CloseOrder
 	err := readBody(resp, req, &closeOrder)
 	if err != nil {

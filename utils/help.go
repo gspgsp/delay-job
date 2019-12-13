@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"delay-job/config"
 	"delay-job/model"
 	"errors"
 	"strconv"
@@ -18,4 +19,12 @@ func FormatLocalTime(time time.Time) (str string, err error) {
 	}
 
 	return "", errors.New("解析错误")
+}
+
+/**
+将local时间格式化为字符串
+*/
+func ParseStringTImeToStand(str string) (time.Time, error) {
+	formatTime, err := time.Parse(config.DefaultTimeFormat, str)
+	return formatTime, err
 }

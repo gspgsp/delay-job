@@ -43,7 +43,7 @@ func getJob(key, topic string) (interface{}, error) {
 	byteValue := value.([]byte)
 
 	switch topic {
-	case "close_vip_order":
+	case "close_vip_order", "close_course_order":
 		job := CloseOrder{}
 		err = msgpack.Unmarshal(byteValue, &job)
 		if err != nil {

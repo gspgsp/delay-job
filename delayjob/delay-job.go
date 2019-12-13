@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,7 +19,7 @@ var (
 	// bucket名称chan
 	bucketNameChan <-chan string
 	//默认任务切片
-	defaultTopicSlice = []string{"close_vip_order"}
+	defaultTopicSlice = []string{"close_vip_order", "close_course_order"}
 )
 
 // Init 初始化延时队列
@@ -207,12 +208,12 @@ func tickConsumerHandler() {
 	}
 
 	updatedAt, _ := utils.FormatLocalTime(time.Now())
+	extra := config.DefaultJobMessage
 
 	switch value := job.(type) {
 	case CloseOrder:
 		//关闭会员订单操作
 		if value.Topic == "close_vip_order" {
-
 			//应该先判断当前订单的状态，只有0的时候才会取消订单，否则不操作
 			var vipOrder model.VipOrderModel
 			if err := baseDb.Table("h_vip_orders").Where("id = ?", value.Body.OrderId).First(&vipOrder).Error; err != nil {
@@ -225,8 +226,6 @@ func tickConsumerHandler() {
 				return
 			}
 
-			extra := `'{"expired_reason":"订单预期未支付，系统自动取消"}'`
-
 			sql := fmt.Sprintf("update h_vip_orders set status = -1, extra = %s, updated_at = %s where id = %s", extra, "'"+updatedAt+"'", value.Body.OrderId)
 			if err := baseDb.Exec(sql).Error; err != nil {
 				log.Printf("更新vip订单出错:%v\n", err.Error())
@@ -236,6 +235,56 @@ func tickConsumerHandler() {
 
 			log.Printf("更新vip订单成功\n")
 			return
+		} else if value.Topic == "close_course_order" {
+			var order model.OrderModel
+			if err := baseDb.Table("h_orders").Where("id = ?", value.Body.OrderId).First(&order).Error; err != nil {
+				log.Info("未找到当前用户订单信息")
+				return
+			}
+
+			if order.Status != 0 || order.PaymentStatus != 0 {
+				log.Info("订单不存在")
+				return
+			}
+
+			sql := fmt.Sprintf("update h_orders set status = -1, extra = %s, updated_at = %s where id = %s", extra, "'"+updatedAt+"'", value.Body.OrderId)
+			if err := baseDb.Exec(sql).Error; err != nil {
+				log.Printf("更新course订单出错:%v\n", err.Error())
+				//其实这里还应该判断，当更新出错以后，从新放回readtQueue，直到超时就是ttl时间，如果在ttl时间内，还没有操作成功，那么就不要继续放回去了。
+				return
+			}
+
+			//除了取消订单，还应将用过的优惠券也还原
+			if order.UserCouponId > 0 {
+				var couponInfo model.CouponInfo
+				if err := baseDb.
+					Table("h_user_coupon").
+					Joins("left join h_coupons on h_user_coupon.coupon_id = h_coupons.id").
+					Select("h_user_coupon.*, h_coupons.name as c_name, h_coupons.value as c_value, h_coupons.min_amount as c_min_amount, h_coupons.suitable as c_suitable, h_coupons.not_before as c_not_before, h_coupons.not_after as c_not_after, h_coupons.effective_day as c_effective_day, h_coupons.enabled as c_enabled").
+					Where("h_user_coupon.id = ?", order.UserCouponId).
+					First(&couponInfo).Error; err != nil {
+					log.Printf("未找到用户相关优惠券信息")
+					return
+				}
+
+				local_create_at, _ := utils.ParseStringTImeToStand(couponInfo.CreatedAt)
+				local_not_after, _ := utils.ParseStringTImeToStand(couponInfo.CNotAfter)
+				if couponInfo.CEffectiveDay > 0 {
+					hh := strconv.Itoa(couponInfo.CEffectiveDay*24) + "h"
+					dd, _ := time.ParseDuration(hh)
+
+					if local_create_at.Add(dd).Before(time.Now()) {
+						err := baseDb.Table("h_user_coupon").Where("id = ?", order.UserCouponId).Update(model.UserCoupon{Status: 2}).Error
+						log.Info("更新用户优惠券失败:", err.Error())
+					}
+				} else if local_not_after.Unix() < time.Now().Unix() {
+					err := baseDb.Table("h_user_coupon").Where("id = ?", order.UserCouponId).Update(model.UserCoupon{Status: 2}).Error
+					log.Info("更新用户优惠券失败:", err.Error())
+				} else {
+					err := baseDb.Table("h_user_coupon").Where("id = ?", order.UserCouponId).Update(model.UserCoupon{Status: 0, UsedAt: "NULL"}).Error
+					log.Info("更新用户优惠券失败:", err.Error())
+				}
+			}
 		}
 	}
 

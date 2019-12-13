@@ -62,7 +62,8 @@ func (cmd *Cmd) parseCommandArgs() {
 
 // 运行Web Server
 func (cmd *Cmd) runWeb() {
-	http.HandleFunc("/close_vip_order", routers.CloseVipOrder)
+	http.HandleFunc("/close_vip_order", routers.CloseOrder)
+	http.HandleFunc("/close_course_order", routers.CloseOrder)
 
 	log.Printf("listen %s\n", config.Setting.BindAddress)
 	err := http.ListenAndServe(config.Setting.BindAddress, nil)

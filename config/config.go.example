@@ -60,6 +60,8 @@ const (
     DefaultLogName = "request"
     //DefaultTimeFormat 默认时间格式化
     DefaultTimeFormat = "2006-01-02 15:04:05"
+    //DefaultJobMessage 默认处理消息
+    DefaultJobMessage = `'{"expired_reason":"订单预期未支付，系统自动取消"}'`
 )
 
 // Config 应用配置
